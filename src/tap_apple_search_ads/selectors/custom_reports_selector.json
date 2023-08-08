@@ -1,0 +1,12 @@
+{
+    "granularity": "DAILY",
+    "selector": {
+      "conditions": [
+        {
+          "field": "countryOrRegion",
+          "operator": "IN",
+          "values": ["US"]
+        }
+      ]
+    }
+}

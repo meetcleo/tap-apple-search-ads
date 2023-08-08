@@ -12,7 +12,7 @@ import singer
 from singer import metadata
 
 from tap_apple_search_ads import config as tap_config
-from tap_apple_search_ads.api import auth, campaign, campaign_level_reports
+from tap_apple_search_ads.api import auth, campaign, campaign_level_reports, impression_share_reports
 from tap_apple_search_ads.api.auth import client_secret
 from tap_apple_search_ads.schema.from_file import api as schema
 
@@ -33,6 +33,7 @@ STREAMS = [
     "campaign_level_reports",
     "campaign_level_reports_extended_spend_row",
     "campaign_level_reports_extended_spend_row_flat",
+    "impression_share_reports"
 ]
 
 cache: Optional[shelve.Shelf] = None
@@ -265,6 +266,19 @@ def sync_concrete_stream(
         )
         for record in reports_records:
             singer.write_record(stream_name, campaign_level_reports.flatten(record))
+
+        return len(reports_records)
+
+    elif stream_name == "impression_share_reports":
+        reports_records = impression_share_reports.sync(
+            headers,
+            additional["start_time"],
+            additional["end_time"],
+            "custom_reports_selector",
+        )
+
+        for record in reports_records:
+            singer.write_record(stream_name, record)
 
         return len(reports_records)
 

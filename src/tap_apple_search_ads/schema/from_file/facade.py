@@ -23,3 +23,6 @@ class Facade:
         return self.collection.get_schema_by_name(
             "ExtendedSpendRow_campaignId_Flat.json"
         )
+
+    def impression_share_reports(self) -> Schema:
+        return self.collection.get_schema_by_name("ImpressionShareDaily.json")

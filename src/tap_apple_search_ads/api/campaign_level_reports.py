@@ -28,6 +28,9 @@ def load_selector(selector_name) -> Dict[str, Any]:
         / "{}.json".format(selector_name)
     ).absolute()
 
+    logger.info(f"Using selector at path: {path}")
+
+
     with open(path, "r") as stream:
         reportsSelector["loaded"] = True
         reportsSelector["data"] = json.load(stream)

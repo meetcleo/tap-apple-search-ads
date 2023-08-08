@@ -1,0 +1,56 @@
+{
+    "type": "object",
+    "required": [
+        "date",
+        "appName",
+        "adamId",
+        "countryOrRegion",
+        "searchTerm",
+        "lowImpressionShare",
+        "highImpressionShare",
+        "rank",
+        "searchPopularity"
+    ],
+    "properties": {
+        "date": {
+            "type": "string",
+            "format": "date"
+        },
+        "appName": {
+            "type": "string"
+        },
+        "adamId": {
+            "type": "string"
+        },
+        "countryOrRegion": {
+            "type": "string"
+        },
+        "searchTerm": {
+            "type": "string"
+        },
+        "lowImpressionShare": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+        },
+        "highImpressionShare": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+        },
+        "rank": {
+            "enum": [
+                "ONE",
+                "TWO",
+                "THREE",
+                "FOUR",
+                "GREATER_THAN_FIVE"
+              ]
+        },
+        "searchPopularity": {
+            "type": "integer"
+        }
+    }
+
+}
+
