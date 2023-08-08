@@ -197,3 +197,7 @@ catalog*.json
 
 # Temporary files
 tmp/
+.env
+venv/
+auth/
+config.json
