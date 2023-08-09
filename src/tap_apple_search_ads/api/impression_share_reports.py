@@ -53,7 +53,14 @@ def sync(
         logger.info("Report is queued, waiting for it to be ready")
 
     import time
-    time.sleep(5)
+    time.sleep(10)
+
+    if report_state != "QUEUED":
+        logger.info("Report is ready, fetching report data")
+    else:
+        logger.info("Report is still queued, awaiting for it to be ready")
+
+    time.sleep(10)
 
     # Second, we fetch the report URI if the report is ready
     metadata_response = requests.get(REPORT_FETCH_DEFAULT_URL.format(report_id=report_id), headers=headers)
@@ -70,6 +77,9 @@ def sync(
     data = []
     reader = csv.DictReader(report_data_response.text.splitlines())
     for row in reader:
+        row["lowImpressionShare"] = float(row["lowImpressionShare"])
+        row["highImpressionShare"] = float(row["highImpressionShare"])
+        row["searchPopularity"] = int(row["searchPopularity"])
         data.append(row)
 
     return data
