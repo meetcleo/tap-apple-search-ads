@@ -1,3 +1,4 @@
+import time
 import requests
 import singer
 import csv
@@ -16,20 +17,19 @@ REPORT_FETCH_DEFAULT_URL = "https://api.searchads.apple.com/api/v4/custom-report
 def sync(
     headers: RequestHeadersValue,
     start_time: datetime,
-    end_time: datetime,
     selector_name: str,
 ) -> List[Dict[str, Any]]:
 
     selector = load_selector(selector_name)
 
     selector["startTime"] = start_time.strftime(api.API_DATE_FORMAT)
-    selector["endTime"] = end_time.strftime(api.API_DATE_FORMAT)
+    selector["endTime"] = start_time.strftime(api.API_DATE_FORMAT)
     selector["name"] = "impression_share_reports_via_meltano"
 
     logger.info(
         "Sync: impression share level reports with start time [%s] and end time [%s]",
-        start_time,
-        end_time,
+        selector["startTime"],
+        selector["endTime"]
     )
 
     if selector_name == "custom_reports_selector":
@@ -38,29 +38,25 @@ def sync(
         logger.info("Sync: using {} selector".format(selector_name))
 
     # First we must request the creation of the report
-    initial_response = requests.post(REPORT_REQUEST_DEFAULT_URL, headers=headers, json=selector) # type: ignore
+    try:
+        initial_response = requests.post(REPORT_REQUEST_DEFAULT_URL, headers=headers, json=selector) # type: ignore
+        initial_response.raise_for_status()
+    except requests.RequestException as e:
+        logger.error("Error creating report: %s", e)
 
     initial_response_json = initial_response.json()
 
-    if initial_response.status_code != 200 or initial_response_json["error"]:
+    if initial_response_json["error"]:
         logger.error("Error creating report: %s", initial_response_json["error"])
 
     report_id = initial_response_json["data"]["id"]
     report_state = initial_response_json["data"]["state"]
+    # TODO: going to do anything with this?
     report_creation_time = initial_response_json["data"]["creationTime"]
 
     if report_state == "QUEUED":
         logger.info("Report is queued, waiting for it to be ready")
-
-    import time
-    time.sleep(10)
-
-    if report_state != "QUEUED":
-        logger.info("Report is ready, fetching report data")
-    else:
-        logger.info("Report is still queued, awaiting for it to be ready")
-
-    time.sleep(10)
+        time.sleep(10)
 
     # Second, we fetch the report URI if the report is ready
     metadata_response = requests.get(REPORT_FETCH_DEFAULT_URL.format(report_id=report_id), headers=headers)
