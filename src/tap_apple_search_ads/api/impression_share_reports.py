@@ -13,6 +13,7 @@ logger = singer.get_logger()
 
 REPORT_REQUEST_DEFAULT_URL = "https://api.searchads.apple.com/api/v4/custom-reports"
 REPORT_FETCH_DEFAULT_URL = "https://api.searchads.apple.com/api/v4/custom-reports/{report_id}"
+TIME_TO_WAIT_FOR_REPORT_SECS = 15
 
 def sync(
     headers: RequestHeadersValue,
@@ -24,7 +25,7 @@ def sync(
 
     selector["startTime"] = start_time.strftime(api.API_DATE_FORMAT)
     selector["endTime"] = start_time.strftime(api.API_DATE_FORMAT)
-    selector["name"] = "impression_share_reports_via_meltano"
+    selector["name"] = "impression_share_report_API_AUTOMATIC"
 
     logger.info(
         "Sync: impression share level reports with start time [%s] and end time [%s]",
@@ -38,25 +39,26 @@ def sync(
         logger.info("Sync: using {} selector".format(selector_name))
 
     # First we must request the creation of the report
+    initial_response = None
     try:
         initial_response = requests.post(REPORT_REQUEST_DEFAULT_URL, headers=headers, json=selector) # type: ignore
         initial_response.raise_for_status()
+        initial_response_json = initial_response.json()
     except requests.RequestException as e:
-        logger.error("Error creating report: %s", e)
-
-    initial_response_json = initial_response.json()
+        logger.error(f"Error creating report: {e}, {initial_response.text}")
+        raise
 
     if initial_response_json["error"]:
         logger.error("Error creating report: %s", initial_response_json["error"])
+        raise
 
     report_id = initial_response_json["data"]["id"]
     report_state = initial_response_json["data"]["state"]
-    # TODO: going to do anything with this?
     report_creation_time = initial_response_json["data"]["creationTime"]
 
     if report_state == "QUEUED":
         logger.info("Report is queued, waiting for it to be ready")
-        time.sleep(10)
+        time.sleep(TIME_TO_WAIT_FOR_REPORT_SECS)
 
     # Second, we fetch the report URI if the report is ready
     metadata_response = requests.get(REPORT_FETCH_DEFAULT_URL.format(report_id=report_id), headers=headers)
@@ -76,6 +78,7 @@ def sync(
         row["lowImpressionShare"] = float(row["lowImpressionShare"])
         row["highImpressionShare"] = float(row["highImpressionShare"])
         row["searchPopularity"] = int(row["searchPopularity"])
+        row['extractedAt'] = report_creation_time
         data.append(row)
 
     return data

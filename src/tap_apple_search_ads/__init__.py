@@ -4,12 +4,13 @@ import pathlib
 import shelve
 import sys
 import time
-from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Tuple
+from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Tuple, Union
 
 import pkg_resources
 import pytz
 import singer
 from singer import metadata
+import singer.utils as singer_utils
 
 from tap_apple_search_ads import config as tap_config
 from tap_apple_search_ads.api import auth, campaign, campaign_level_reports, impression_share_reports
@@ -213,42 +214,25 @@ def sync_stream(
 
     singer.write_schema(stream_name, stream.schema.to_dict(), [])
 
-    replication_key_field = stream_metadata.get((), {}).get('replication-key', None)
-    replication_method = stream_metadata.get((), {}).get('replication-method', None)
-    # get current max replication value from state if available, otherwise default to config value
-    additional['start_time'] = singer.get_bookmark(
-        state,
-        stream_name,
-        replication_key_field,
-        default=additional['start_time']
-    )
-
-    logger.info(f"Start time: {additional['start_time']}")
-
-    count, max_replication_value = sync_concrete_stream(stream_name, headers, additional)
-
-    if replication_method == "INCREMENTAL": # type: ignore
-        state = singer.write_bookmark(state, stream_name, 'date', max_replication_value) # type: ignore
-
+    state = sync_concrete_stream(state, stream_name, headers, additional)
     singer.write_state(state)
 
-    logger.info(f"State: {state}")
-
+    records_count = singer.get_bookmark(state, stream_name, 'latestRecordCount', default=0)
     end_time = time.monotonic() - start_time
     logger.info(
-        "%s: Completed sync (%s rows) in %s seconds", stream_name, count, end_time
+        "%s: Completed sync (%s rows) in %s seconds", stream_name, records_count, end_time
     )
 
 
 def sync_concrete_stream(
-    stream_name: str, headers: auth.RequestHeadersValue, additional: Dict[str, Any]
-) -> Tuple[int, Optional[datetime.datetime]]:
+    state: Dict[str, Any], stream_name: str, headers: auth.RequestHeadersValue, additional: Dict[str, Any]
+) -> Dict[str, Any]:
     if stream_name == "campaign":
         campaing_records = campaign.sync(headers)
         for record in campaing_records:
             singer.write_record(stream_name, record)
 
-        return len(campaing_records), None
+        return state
 
     elif stream_name == "campaign_flat":
         campaing_records = campaign.sync(headers)
@@ -256,7 +240,7 @@ def sync_concrete_stream(
             record = campaign.to_schema(record)
             singer.write_record(stream_name, record)
 
-        return len(campaing_records), None
+        return state
 
     elif stream_name == "campaign_level_reports":
         reports_records = campaign_level_reports.sync(
@@ -268,7 +252,7 @@ def sync_concrete_stream(
         for record in reports_records:
             singer.write_record(stream_name, record)
 
-        return len(reports_records), None
+        return state
 
     elif stream_name == "campaign_level_reports_extended_spend_row":
         reports_records = campaign_level_reports.sync_extended_spend_row(
@@ -280,7 +264,7 @@ def sync_concrete_stream(
         for record in reports_records:
             singer.write_record(stream_name, record)
 
-        return len(reports_records), None
+        return state
 
     elif stream_name == "campaign_level_reports_extended_spend_row_flat":
         reports_records = campaign_level_reports.sync_extended_spend_row(
@@ -292,27 +276,38 @@ def sync_concrete_stream(
         for record in reports_records:
             singer.write_record(stream_name, campaign_level_reports.flatten(record))
 
-        return len(reports_records)
+        return state
 
     elif stream_name == "impression_share_reports":
-        # reports_records = impression_share_reports.sync(
-        #     headers,
-        #     additional["start_time"],
-        #     "custom_reports_selector",
-        # )
 
-        #TODO: Remove
-        reports_records = []
+        # get current max replication value from state if available, otherwise default to config value
+        current_bookmark_value = singer.get_bookmark(
+            state,
+            stream_name,
+            'date',
+            default=None
+        )
+
+        if current_bookmark_value is not None:
+            additional['start_time'] = singer_utils.strptime_to_utc(current_bookmark_value) + datetime.timedelta(days=1)
+
+        logger.info(f"Start date: {additional['start_time']}")
+
+        reports_records = impression_share_reports.sync(
+            headers,
+            additional["start_time"],
+            "custom_reports_selector",
+        )
 
         for record in reports_records:
             singer.write_record(stream_name, record)
 
         records_count = len(reports_records)
-        # max_report_date = max(record['date'] for record in reports_records)
-        # max_report_date = datetime.datetime(2023, 5, 1)
-        max_report_date = '2023-05-01'
+        max_report_date = max(record['date'] for record in reports_records)
 
+        state = singer.write_bookmark(state, stream_name, 'date', max_report_date)
+        state = singer.write_bookmark(state, stream_name, 'latestRecordCount', records_count)
 
-        return records_count, max_report_date
+        return state
 
     raise TapAppleSearchAdsException("Unknown stream: [{}]".format(stream_name))
