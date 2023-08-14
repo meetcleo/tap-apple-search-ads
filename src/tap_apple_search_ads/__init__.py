@@ -291,11 +291,15 @@ def sync_concrete_stream(
         if current_bookmark_value is not None:
             additional['start_time'] = singer_utils.strptime_to_utc(current_bookmark_value) + datetime.timedelta(days=1)
 
+        if additional['end_time'] is None:
+            additional['end_time'] = datetime.datetime.today() - datetime.timedelta(days=1)
+
         logger.info(f"Start date: {additional['start_time']}")
 
         reports_records = impression_share_reports.sync(
             headers,
             additional["start_time"],
+            additional["end_time"],
             "custom_reports_selector",
         )
 
