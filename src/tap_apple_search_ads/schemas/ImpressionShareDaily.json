@@ -39,13 +39,7 @@
             "maximum": 1
         },
         "rank": {
-            "enum": [
-                "ONE",
-                "TWO",
-                "THREE",
-                "FOUR",
-                "GREATER_THAN_FIVE"
-              ]
+            "type": "string"
         },
         "searchPopularity": {
             "type": "integer"
