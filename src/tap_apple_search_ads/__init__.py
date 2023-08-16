@@ -212,7 +212,7 @@ def sync_stream(
     start_time = time.monotonic()
     logger.info("%s: Starting sync", stream_name)
 
-    singer.write_schema(stream_name, stream.schema.to_dict(), [])
+    singer.write_schema(stream_name, stream.schema.to_dict(), stream_metadata.get((), {}).get("key-properties", []))
 
     state = sync_concrete_stream(state, stream_name, headers, additional)
     singer.write_state(state)
