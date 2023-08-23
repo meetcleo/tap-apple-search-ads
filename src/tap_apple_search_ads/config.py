@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Mapping
 
 import pytz
@@ -15,7 +15,7 @@ def default_start_time() -> datetime:
 
 
 def default_end_time() -> datetime:
-    end_time = datetime.now(tz=pytz.utc)
+    end_time = datetime.now(tz=pytz.utc) - timedelta(days=1)
     return end_time
 
 
