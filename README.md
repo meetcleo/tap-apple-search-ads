@@ -5,6 +5,8 @@
 > [!NOTE]
 > This tap was forked from [Mighty Digital's original version](https://github.com/mighty-digital/tap-apple-search-ads), to add support for the [ASA Impression Share Report](https://developer.apple.com/documentation/apple_search_ads/impression_share_reports). 
 
+> [!WARNING]
+> This tap is still in active development, and so has not been thoroughly tested. Use with caution.
 
 ## Features
 
