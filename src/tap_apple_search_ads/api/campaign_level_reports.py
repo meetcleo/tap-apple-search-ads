@@ -13,7 +13,7 @@ from tap_apple_search_ads.api.auth import RequestHeadersValue
 
 logger = singer.get_logger()
 
-DEFAULT_URL = "https://api.searchads.apple.com/api/v4/reports/campaigns"
+DEFAULT_URL = "https://api.searchads.apple.com/api/v5/reports/campaigns"
 
 reportsSelector: Dict[str, Any] = {"loaded": False, "data": Dict[str, Any]}
 

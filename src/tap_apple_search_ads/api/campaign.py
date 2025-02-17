@@ -11,7 +11,7 @@ from tap_apple_search_ads.api.auth import RequestHeadersValue
 
 logger = singer.get_logger()
 
-DEFAULT_URL = "https://api.searchads.apple.com/api/v4/campaigns"
+DEFAULT_URL = "https://api.searchads.apple.com/api/v5/campaigns"
 
 PROPERTIES_TO_SERIALIZE = {
     "budgetOrders",
