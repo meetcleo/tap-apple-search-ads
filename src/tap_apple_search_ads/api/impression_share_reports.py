@@ -11,8 +11,8 @@ from tap_apple_search_ads.api.campaign_level_reports import load_selector, repor
 
 logger = singer.get_logger()
 
-REPORT_REQUEST_DEFAULT_URL = "https://api.searchads.apple.com/api/v4/custom-reports"
-REPORT_FETCH_DEFAULT_URL = "https://api.searchads.apple.com/api/v4/custom-reports/{report_id}"
+REPORT_REQUEST_DEFAULT_URL = "https://api.searchads.apple.com/api/v5/custom-reports"
+REPORT_FETCH_DEFAULT_URL = "https://api.searchads.apple.com/api/v5/custom-reports/{report_id}"
 TIME_TO_WAIT_FOR_REPORT_SECS = 15
 DAILY_REPORT_REQUEST_LIMIT = 10
 
